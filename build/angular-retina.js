@@ -1,4 +1,4 @@
-/*! angular-retina - v0.3.1 - 2015-08-24
+/*! angular-retina - v0.3.3 - 2015-12-22
 * https://github.com/jrief/angular-retina
 * Copyright (c) 2015 Jacob Rief; Licensed MIT */
 // Add support for Retina displays when using element attribute "ng-src".
@@ -6,7 +6,7 @@
 // distinguishes between standard or high-resolution (Retina) displays.
 (function (angular, undefined) {
   'use strict';
-  var infix = '@2x', data_url_regex = /^data:([a-z]+\/[a-z]+(;[a-z\-]+\=[a-z\-]+)?)?(;base64)?,(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
+  var infix = '@2x', data_url_regex = /^data:([a-z]+\/[a-z]+(;[a-z\-]+\=[a-z\-]+)?)?(;base64)?,(?:[A-Za-z0-9+\/]{4})*(?:[A-Za-z0-9+\/]{2}==|[A-Za-z0-9+\/]{3}=)?$/;
   var ngRetina = angular.module('ngRetina', []).config([
       '$provide',
       function ($provide) {
@@ -29,7 +29,8 @@
   ngRetina.directive('ngSrc', [
     '$window',
     '$http',
-    function ($window, $http) {
+    '$log',
+    function ($window, $http, $log) {
       var msie = parseInt((/msie (\d+)/.exec($window.navigator.userAgent.toLowerCase()) || [])[1], 10);
       var isRetina = function () {
           var mediaQuery = '(-webkit-min-device-pixel-ratio: 1.5), (min--moz-device-pixel-ratio: 1.5), ' + '(-o-min-device-pixel-ratio: 3/2), (min-resolution: 1.5dppx)';
@@ -53,17 +54,29 @@
         function set2xVariant(img_url) {
           var img_url_2x = null;
           if (angular.isUndefined(attrs.at2x))
-            img_url_2x = $window.sessionStorage.getItem(img_url);
+            try {
+              img_url_2x = $window.sessionStorage.getItem(img_url);
+            } catch (e) {
+              $log.warn('sessionStorage not supported');
+            }
           else
             img_url_2x = attrs.at2x;
           if (!img_url_2x) {
             img_url_2x = getHighResolutionURL(img_url);
             $http.head(img_url_2x).success(function (data, status) {
               setImgSrc(img_url_2x);
-              $window.sessionStorage.setItem(img_url, img_url_2x);
+              try {
+                $window.sessionStorage.setItem(img_url, img_url_2x);
+              } catch (e) {
+                $log.warn('sessionStorage not supported');
+              }
             }).error(function (data, status, headers, config) {
               setImgSrc(img_url);
-              $window.sessionStorage.setItem(img_url, img_url);
+              try {
+                $window.sessionStorage.setItem(img_url, img_url);
+              } catch (e) {
+                $log.warn('sessionStorage not supported');
+              }
             });
           } else {
             setImgSrc(img_url_2x);
